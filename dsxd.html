@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Home</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+  <style>
+    :root { --retro-green:#00ff00; --retro-dark:#000000; --retro-light:#c0c0c0; --retro-border:#808080; }
+    body { margin:0; font-family:'VT323', monospace; background:var(--retro-dark); color:var(--retro-green); line-height:1.5; text-transform:uppercase; background-size:cover; background-position:center; background-attachment:fixed; }
+    header { padding:16px 20px; background:#111; border-bottom:2px solid var(--retro-green); }
+    h1 { margin:0; font-size:24px; font-weight:normal; color:var(--retro-light); text-shadow:1px 1px var(--retro-green); }
+    main { max-width:900px; margin:20px auto; padding:0 16px 40px; }
+    .controls { display:flex; gap:16px; align-items:center; flex-wrap:wrap; margin:12px 0 18px; }
+    .btn { appearance:none; border:2px solid var(--retro-green); background:var(--retro-dark); color:var(--retro-light); padding:8px 12px; cursor:pointer; font-family:'VT323', monospace; font-size:18px; box-shadow:2px 2px 0 var(--retro-green); text-shadow:1px 1px 0 var(--retro-dark); transition:all 0.1s; }
+    .btn:hover { background:var(--retro-green); color:var(--retro-dark); box-shadow:2px 2px 0 var(--retro-light); }
+    .btn:active { transform:translate(2px,2px); box-shadow:none; }
+    .hint { opacity:0.8; font-size:14px; color:var(--retro-light); }
+    .ds-shell { height:500px; width:auto; max-width:512px; background:var(--retro-dark); border:2px solid var(--retro-green); overflow:hidden; box-shadow:4px 4px 0 var(--retro-green); display:flex; align-items:center; justify-content:center; margin:0 auto 10px; }
+    #game { width:100%; height:100%; }
+    .drop { display:grid; place-items:center; border:2px dashed var(--retro-green); padding:20px; text-align:center; margin:10px 0 18px; background:#111; }
+    .drop.hover { background:#222; }
+    .drop small { opacity:0.7; color:var(--retro-light); }
+    .modal-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background-color:rgba(0,0,0,0.8); display:none; justify-content:center; align-items:center; z-index:1000; backdrop-filter:blur(3px); }
+    .modal-overlay.active { display:flex; }
+    .modal-content { background:var(--retro-dark); border:2px solid var(--retro-green); box-shadow:4px 4px 0 var(--retro-green); padding:20px; max-width:400px; color:var(--retro-light); text-shadow:1px 1px var(--retro-green); }
+    .modal-header { display:flex; justify-content:space-between; align-items:center; border-bottom:2px dashed var(--retro-green); padding-bottom:10px; margin-bottom:10px; }
+    .modal-header h2 { margin:0; font-size:20px; }
+    .close-btn { font-size:24px; font-weight:bold; cursor:pointer; color:var(--retro-light); transition:color 0.1s; }
+    .close-btn:hover { color:var(--retro-green); }
+    .modal-body p { font-size:16px; margin:0; }
+    .brick-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1100;
+    }
+    .btn.brick {
+      font-size: 14px;
+      padding: 6px 10px;
+      box-shadow: 1px 1px 0 var(--retro-green);
+    }
+    #errorScreen {
+      position: fixed;
+      top:0; left:0;
+      width:100%; height:100%;
+      background:black;
+      color:red;
+      display:none;
+      justify-content:center;
+      align-items:center;
+      font-size:32px;
+      text-shadow:2px 2px 5px #000;
+      z-index: 2000;
+    }
+    #sdCardFiles { margin-top:10px; }
+    #sdCardFiles .btn { font-size:14px; margin:2px; padding:6px 10px; }
+    /* Mobile Warning */
+    #mobileWarning {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: black;
+      color: white;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      font-size: 20px;
+      z-index: 3000;
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+  <header><h1>DSXD V1</h1></header>
+
+  <!-- Audio Elements -->
+  <audio id="clickSound" src="https://www.soundjay.com/buttons/sounds/button-16.mp3" preload="auto"></audio>
+  <audio id="bgSound" loop autoplay muted></audio>
+
+  <div class="controls">
+    <input id="audioFile" type="file" accept="audio/*" hidden />
+    <button class="btn" id="uploadAudioBtn">Upload Music</button>
+    <button class="btn" id="toggleSound" disabled>Unmute Sound</button>
+    <button class="btn" id="downloadBtn">Download DSXD</button>
+    <button class="btn" id="romsBtn">Downloading ROMs</button>
+    <button class="btn" id="sdCardBtn">SD Card (Doesnt work inside openprocessing)</button>
+  </div>
+
+  <main>
+    <div class="controls">
+      <input id="romFile" type="file" hidden />
+      <button class="btn" id="chooseBtn">Upload .NDS</button>
+      <input id="bgFile" type="file" accept="image/*" hidden />
+      <button class="btn" id="changeBgBtn">Change Background</button>
+      <button class="btn" id="aboutBtn">Read here</button>
+      <button class="btn" id="newsBtn">News here (2)</button>
+    </div>
+
+    <div class="drop" id="dropZone">
+      <div>
+        <strong>Drop your .nds here</strong><br />
+        <small>Loads locally in your browser. To pick another ROM later, refresh the page.</small>
+      </div>
+    </div>
+
+    <div id="sdCardFiles" class="drop">
+      <div><small>No SD Card selected</small></div>
+    </div>
+
+    <div class="ds-shell">
+      <div id="game" aria-label="Emulator viewport"></div>
+    </div>
+
+    <p class="hint">INSIDE THE EMULATOR UI: OPEN THE MENU → OPTIONS/CORE OPTIONS TO PICK DS SCREEN LAYOUTS.</p>
+    <p class="hint">USE ONLY HOMEBREW OR YOUR OWN LEGALLY-DUMPED BACKUPS.</p>
+  </main>
+
+  <!-- Brick Button -->
+  <div class="brick-container">
+    <button class="btn brick" id="brickBtn">Brick this system</button>
+  </div>
+
+  <!-- Error Screen -->
+  <div id="errorScreen">Error Occurred</div>
+
+  <!-- Modals -->
+  <div id="aboutModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>About DSXD</h2>
+        <span class="close-btn">&times;</span>
+      </div>
+      <div class="modal-body">
+        <p>Hello and welcome to DSXD. It's a system where you can play Nintendo DS Games. It may be laggy for Chromebook. If you have any questions or report something, email Southwestern1129@gmail.com. Do not download this system by anyone! The only best one is from openprocessing. If you did download this from someone or anywhere, delete it now because it can have sketchy stuff. and download the actual one in **https://openprocessing.org/sketch/2704961**</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="newsModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>News (Witten in SEP 12 2025)</h2>
+        <span class="close-btn">&times;</span>
+      </div>
+      <div class="modal-body">
+        <p>Recode canceled. Just get used to the lag. Versions will be reseted because before V1.1, no one played my system.</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="errorModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Error</h2>
+        <span class="close-btn" id="closeErrorBtn">&times;</span>
+      </div>
+      <div class="modal-body">
+        <p>Error: .NDS File corrupted or wrong file.</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="romsModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Downloading ROMs</h2>
+        <span class="close-btn">&times;</span>
+      </div>
+      <div class="modal-body">
+        <p>If your on a Personal computer, dont gotta read this. If your on a School owned computer with a extension like GoGuardian and cant download roms? Heres a tutorial how to use roms to play here.</p>
+        <ul>
+          <li>Get a USB SD Card</li>
+          <li>Plug it into your personal computer</li>
+          <li>Find a trusted website with DS games</li>
+          <li>Download any DS games</li>
+          <li>When finished, extract your file</li>
+          <li>When extracted, drag the file to your SD Card</li>
+          <li>When done, safely take your SD Card and Plug it into your School Computer</li>
+          <li>When done, you can load .NDS from your SD Card!</li>
+        </ul>
+        <p>Only use Vimm's Lair or other trusted websites.</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="mobileWarning">
+    <p>
+      This system does not support mobile devices.<br>
+      If you think it's a mistake, contact Southwestern1129@gmail.com
+    </p>
+  </div>
+
+  <script>
+    // Click Sound
+    const clickSound = document.getElementById('clickSound');
+    function playClick() { clickSound.currentTime=0; clickSound.play(); }
+    document.querySelectorAll('.btn').forEach(btn=>btn.addEventListener('click', playClick));
+
+    // Background Music
+    const bgSound = document.getElementById('bgSound');
+    const uploadAudioBtn = document.getElementById('uploadAudioBtn');
+    const audioFileInput = document.getElementById('audioFile');
+    const toggleSound = document.getElementById('toggleSound');
+    uploadAudioBtn.addEventListener('click', ()=>audioFileInput.click());
+    audioFileInput.addEventListener('change', e=>{
+      const file=e.target.files[0];
+      if(file){ bgSound.src = URL.createObjectURL(file); toggleSound.disabled=false; }
+    });
+    toggleSound.addEventListener('click', ()=>{
+      bgSound.muted = !bgSound.muted;
+      toggleSound.textContent = bgSound.muted ? 'Unmute Sound':'Mute Sound';
+      bgSound.play();
+    });
+
+    // Emulator Logic
+    const fileInput = document.getElementById('romFile');
+    const chooseBtn = document.getElementById('chooseBtn');
+    const dropZone = document.getElementById('dropZone');
+    const bgFileInput = document.getElementById('bgFile');
+    const changeBgBtn = document.getElementById('changeBgBtn');
+    const errorModal = document.getElementById('errorModal');
+    const closeErrorBtn = document.getElementById('closeErrorBtn');
+    chooseBtn.addEventListener('click', ()=>fileInput.click());
+    changeBgBtn.addEventListener('click', ()=>bgFileInput.click());
+    fileInput.addEventListener('change', e=>{
+      const f=e.target.files[0];
+      if(f){ isValidNdsFile(f)? loadRom(f): showErrorModal(); }
+    });
+    bgFileInput.addEventListener('change', e=>{
+      const f=e.target.files[0];
+      if(f) changeBackground(f);
+    });
+    ['dragenter','dragover'].forEach(evt => dropZone.addEventListener(evt, e=>{ e.preventDefault(); dropZone.classList.add('hover'); }));
+    ['dragleave','drop'].forEach(evt => dropZone.addEventListener(evt, e=>{ e.preventDefault(); dropZone.classList.remove('hover'); }));
+    dropZone.addEventListener('drop', e=>{
+      const f = e.dataTransfer.files && e.dataTransfer.files[0];
+      if(f){ isValidNdsFile(f)? loadRom(f): showErrorModal(); }
+    });
+    function isValidNdsFile(file){ return file && file.name.toLowerCase().endsWith('.nds'); }
+    function showErrorModal(){ errorModal.classList.add('active'); }
+    const CDN = 'https://cdn.emulatorjs.org/stable/';
+    let booted = false;
+    function loadRom(file){
+      if(booted){ location.reload(); return; }
+      booted = true;
+      const url = URL.createObjectURL(file);
+      window.EJS_player = '#game';
+      window.EJS_core = 'desmume';
+      window.EJS_gameUrl = url;
+      window.EJS_gameName = file.name.replace(/\.(nds|zip|7z|rar)$/i,'');
+      window.EJS_pathtodata = CDN+'data/';
+      window.EJS_color = '#00ff00';
+      window.EJS_ready = function(){ bgSound.volume=0.2; };
+      const s=document.createElement('script');
+      s.id='ejs-loader';
+      s.src=window.EJS_pathtodata+'loader.js';
+      document.body.appendChild(s);
+    }
+    function changeBackground(file){
+      const reader=new FileReader();
+      reader.onload=e=>{ document.body.style.backgroundImage=`url(${e.target.result})`; };
+      reader.readAsDataURL(file);
+    }
+
+    // Modals
+    const aboutBtn = document.getElementById('aboutBtn');
+    const aboutModal = document.getElementById('aboutModal');
+    aboutBtn.addEventListener('click', ()=>aboutModal.classList.add('active'));
+    aboutModal.querySelector('.close-btn').addEventListener('click', ()=>aboutModal.classList.remove('active'));
+    aboutModal.addEventListener('click', e=>{ if(e.target===aboutModal) aboutModal.classList.remove('active'); });
+
+    const newsBtn = document.getElementById('newsBtn');
+    const newsModal = document.getElementById('newsModal');
+    newsBtn.addEventListener('click', ()=>newsModal.classList.add('active'));
+    newsModal.querySelector('.close-btn').addEventListener('click', ()=>newsModal.classList.remove('active'));
+    newsModal.addEventListener('click', e=>{ if(e.target===newsModal) newsModal.classList.remove('active'); });
+
+    closeErrorBtn.addEventListener('click', ()=>errorModal.classList.remove('active'));
+    errorModal.addEventListener('click', e=>{ if(e.target===errorModal) errorModal.classList.remove('active'); });
+
+    const brickBtn = document.getElementById('brickBtn');
+    const errorScreen = document.getElementById('errorScreen');
+    brickBtn.addEventListener('click', ()=>{
+      document.body.innerHTML='';
+      errorScreen.style.display='flex';
+    });
+
+    const downloadBtn = document.getElementById('downloadBtn');
+    downloadBtn.addEventListener('click', ()=>{
+      const blob = new Blob([document.documentElement.outerHTML],{type:'text/html'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href=url;
+      a.download='DSXD.html';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+
+    // Mobile Warning
+    function isMobileDevice(){ return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent); }
+    window.addEventListener('load', ()=>{ if(isMobileDevice()) document.getElementById('mobileWarning').style.display='flex'; });
+
+    // Roms Modal
+    const romsBtn = document.getElementById('romsBtn');
+    const romsModal = document.getElementById('romsModal');
+    romsBtn.addEventListener('click', ()=>romsModal.classList.add('active'));
+    romsModal.querySelector('.close-btn').addEventListener('click', ()=>romsModal.classList.remove('active'));
+    romsModal.addEventListener('click', e=>{ if(e.target===romsModal) romsModal.classList.remove('active'); });
+
+    // SD Card Feature
+    const sdCardBtn = document.getElementById('sdCardBtn');
+    const sdCardFiles = document.getElementById('sdCardFiles');
+
+    async function readSdCard() {
+      if (!window.showDirectoryPicker) {
+        alert('Your browser does not support SD card access.');
+        return;
+      }
+
+      try {
+        const dirHandle = await window.showDirectoryPicker();
+        sdCardFiles.innerHTML = '<strong>Loading files...</strong>';
+
+        const ndsFiles = [];
+        for await (const entry of dirHandle.values()) {
+          if(entry.kind==='file' && entry.name.toLowerCase().endsWith('.nds')) ndsFiles.push(entry);
+        }
+
+        if(ndsFiles.length===0){
+          sdCardFiles.innerHTML = '<small>No .NDS files found in this folder.</small>';
+          return;
+        }
+
+        sdCardFiles.innerHTML = '';
+        ndsFiles.forEach(fileHandle=>{
+          const btn = document.createElement('button');
+          btn.textContent = fileHandle.name;
+          btn.className = 'btn';
+          btn.style.fontSize='14px';
+          btn.style.margin='4px';
+          btn.addEventListener('click', async ()=>{
+            const file = await fileHandle.getFile();
+            loadRom(file);
+          });
+          sdCardFiles.appendChild(btn);
+        });
+
+      } catch(err){
+        console.error(err);
+        sdCardFiles.innerHTML = '<small>Failed to access SD Card.</small>';
+      }
+    }
+
+    sdCardBtn.addEventListener('click', readSdCard);
+  </script>
+</body>
+</html>
